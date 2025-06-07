@@ -12,6 +12,7 @@ import ru.yandex.intershop.repository.CartItemRepository;
 import ru.yandex.intershop.repository.CartRepository;
 import ru.yandex.intershop.repository.ItemRepository;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 
 @Service
@@ -76,6 +77,13 @@ public class CartServiceImpl implements CartService {
                 });
             }
         }
+    }
+
+    @Override
+    public BigDecimal calculateTotal(Cart cart) {
+        return cart.getItems().stream()
+                .map(item -> item.getItem().getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
 }
 
