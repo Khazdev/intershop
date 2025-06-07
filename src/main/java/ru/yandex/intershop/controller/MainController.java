@@ -12,13 +12,12 @@ import ru.yandex.intershop.enums.ActionType;
 import ru.yandex.intershop.mapper.ItemToItemDtoMapper;
 import ru.yandex.intershop.model.Cart;
 import ru.yandex.intershop.model.CartItem;
+import ru.yandex.intershop.model.Item;
 import ru.yandex.intershop.model.Paging;
 import ru.yandex.intershop.service.CartService;
 import ru.yandex.intershop.service.ItemService;
 
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
 
 @Controller
 @RequiredArgsConstructor
@@ -34,8 +33,11 @@ public class MainController {
 
     @GetMapping("/main/items")
     public String showItems(Model model) {
-        List<Item> items = itemService.findItems();
-        model.addAttribute("items", List.of(items, items));
+        List<Item> allExistingItems = itemService.findItems();
+        Cart currentUserCart = cartService.getCurrentUserCart();
+        List<ItemDto> items = ItemToItemDtoMapper.mapList(allExistingItems, currentUserCart);
+
+        model.addAttribute("items", List.of(items));
         model.addAttribute("search", "");
         model.addAttribute("sort", "NO");
         model.addAttribute("paging", new Paging(1, 1, false, false));
