@@ -7,4 +7,5 @@ import java.util.List;
 public interface ItemService {
 
     List<Item> findItems();
+    Item getItemById(Long id);
 }

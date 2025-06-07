@@ -11,7 +11,6 @@ import ru.yandex.intershop.dto.ItemDto;
 import ru.yandex.intershop.enums.ActionType;
 import ru.yandex.intershop.mapper.ItemToItemDtoMapper;
 import ru.yandex.intershop.model.Cart;
-import ru.yandex.intershop.model.CartItem;
 import ru.yandex.intershop.model.Item;
 import ru.yandex.intershop.model.Paging;
 import ru.yandex.intershop.service.CartService;
