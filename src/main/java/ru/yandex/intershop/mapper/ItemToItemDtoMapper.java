@@ -1,8 +1,8 @@
 package ru.yandex.intershop.mapper;
 
 import lombok.experimental.UtilityClass;
+import ru.yandex.intershop.dto.ItemDto;
 import ru.yandex.intershop.model.Item;
-import ru.yandex.intershop.repository.ItemDao;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -10,10 +10,10 @@ import java.util.stream.Collectors;
 import static org.apache.commons.collections4.CollectionUtils.emptyIfNull;
 
 @UtilityClass
-public class ItemDaoToItemMapper {
+public class ItemToItemDtoMapper {
 
-    public static Item map(ItemDao fromDao) {
-        return Item.builder()
+    public static ItemDto map(Item fromDao) {
+        return ItemDto.builder()
                 .id(fromDao.getId())
                 .count(fromDao.getCount())
                 .description(fromDao.getDescription())
@@ -22,7 +22,7 @@ public class ItemDaoToItemMapper {
                 .build();
     }
 
-    public static List<Item> mapList(List<ItemDao> fromList) {
-        return emptyIfNull(fromList).stream().map(ItemDaoToItemMapper::map).collect(Collectors.toList());
+    public static List<ItemDto> mapList(List<Item> fromList) {
+        return emptyIfNull(fromList).stream().map(ItemToItemDtoMapper::map).collect(Collectors.toList());
     }
 }
