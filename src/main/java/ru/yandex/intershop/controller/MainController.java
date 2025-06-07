@@ -1,6 +1,7 @@
 package ru.yandex.intershop.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import ru.yandex.intershop.dto.ItemDto;
 import ru.yandex.intershop.enums.ActionType;
+import ru.yandex.intershop.enums.SortType;
 import ru.yandex.intershop.mapper.ItemToItemDtoMapper;
 import ru.yandex.intershop.model.Cart;
 import ru.yandex.intershop.model.Item;
@@ -19,6 +21,9 @@ import ru.yandex.intershop.service.ItemService;
 import ru.yandex.intershop.service.OrderService;
 
 import java.util.List;
+import java.util.Locale;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 @Controller
 @RequiredArgsConstructor
@@ -34,15 +39,22 @@ public class MainController {
     }
 
     @GetMapping("/main/items")
-    public String showItems(Model model) {
-        List<Item> allExistingItems = itemService.findItems();
-        Cart currentUserCart = cartService.getCurrentUserCart();
-        List<ItemDto> items = ItemToItemDtoMapper.mapList(allExistingItems, currentUserCart);
+    public String showItems(@RequestParam(defaultValue = "") String search,
+                            @RequestParam(defaultValue = "NO") SortType sort,
+                            @RequestParam(defaultValue = "10") int pageSize,
+                            @RequestParam(defaultValue = "1") int pageNumber,
+                            Model model) {
 
-        model.addAttribute("items", List.of(items));
-        model.addAttribute("search", "");
-        model.addAttribute("sort", "NO");
-        model.addAttribute("paging", new Paging(1, 1, false, false));
+        Page<Item> page = itemService.findItems(search, sort, pageNumber, pageSize);
+        Cart currentUserCart = cartService.getCurrentUserCart();
+        List<ItemDto> items = ItemToItemDtoMapper.mapList(page.getContent(), currentUserCart);
+        List<List<ItemDto>> result = splitIntoRows(items, 4);
+        Paging paging = new Paging(page.getNumber() + 1, page.getSize(), page.hasNext(), page.hasPrevious());
+
+        model.addAttribute("items", result);
+        model.addAttribute("search", search);
+        model.addAttribute("sort", sort.name().toUpperCase(Locale.ROOT));
+        model.addAttribute("paging", paging);
 
         return "main";
     }
@@ -57,5 +69,14 @@ public class MainController {
     public String buy() {
         Order order = orderService.createOrderFromCart();
         return "redirect:/orders/" + order.getId() + "?newOrder=true";
+    }
+
+    private List<List<ItemDto>> splitIntoRows(List<ItemDto> items, int itemsPerRow) {
+        return IntStream.range(0, (items.size() + itemsPerRow - 1) / itemsPerRow)
+                .mapToObj(i -> items.subList(
+                        i * itemsPerRow,
+                        Math.min((i + 1) * itemsPerRow, items.size())
+                ))
+                .collect(Collectors.toList());
     }
 }

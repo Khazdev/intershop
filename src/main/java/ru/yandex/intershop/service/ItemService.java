@@ -1,11 +1,12 @@
 package ru.yandex.intershop.service;
 
+import org.springframework.data.domain.Page;
+import ru.yandex.intershop.enums.SortType;
 import ru.yandex.intershop.model.Item;
 
-import java.util.List;
 
 public interface ItemService {
 
-    List<Item> findItems();
+    Page<Item> findItems(String search, SortType sort, int pageNumber, int pageSize);
     Item getItemById(Long id);
 }
