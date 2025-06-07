@@ -85,5 +85,10 @@ public class CartServiceImpl implements CartService {
                 .map(item -> item.getItem().getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
     }
+
+    @Override
+    public void saveCart(Cart cart) {
+        cartRepository.save(cart);
+    }
 }
 

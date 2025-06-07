@@ -9,4 +9,5 @@ public interface CartService {
     void updateCartItem(Long itemId, ActionType action);
     Cart getCurrentUserCart();
     BigDecimal calculateTotal(Cart cart);
+    void saveCart(Cart cart);
 }

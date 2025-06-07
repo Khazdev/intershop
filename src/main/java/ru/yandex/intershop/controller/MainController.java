@@ -12,9 +12,11 @@ import ru.yandex.intershop.enums.ActionType;
 import ru.yandex.intershop.mapper.ItemToItemDtoMapper;
 import ru.yandex.intershop.model.Cart;
 import ru.yandex.intershop.model.Item;
+import ru.yandex.intershop.model.Order;
 import ru.yandex.intershop.model.Paging;
 import ru.yandex.intershop.service.CartService;
 import ru.yandex.intershop.service.ItemService;
+import ru.yandex.intershop.service.OrderService;
 
 import java.util.List;
 
@@ -24,6 +26,7 @@ public class MainController {
 
     private final ItemService itemService;
     private final CartService cartService;
+    private final OrderService orderService;
 
     @GetMapping("/")
     public String root() {
@@ -50,4 +53,9 @@ public class MainController {
         return "redirect:/main/items";
     }
 
+    @PostMapping("/buy")
+    public String buy() {
+        Order order = orderService.createOrderFromCart();
+        return "redirect:/orders/" + order.getId() + "?newOrder=true";
+    }
 }
