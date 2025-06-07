@@ -35,7 +35,7 @@
                 <tr>
                     <td>
                         <form th:action="${'/cart/items/'+item.getId()}" method="post">
-                            <button name="action" value="MINUS">-</button>
+                            <button name="action" value="MINUS" th:disabled="${item.getCount() == 0}">-</button>
                             <span th:text="${item.getCount()}"></span>
                             <button name="action" value="PLUS">+</button>
                             <button name="action" value="DELETE" style="float:right;">&cross;</button>
