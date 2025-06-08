@@ -19,6 +19,7 @@ public class ItemToItemDtoMapper {
         return ItemDto.builder()
                 .id(from.getId())
                 .count(count)
+                .title(from.getTitle())
                 .description(from.getDescription())
                 .price(from.getPrice())
                 .imgPath(from.getImgPath())
