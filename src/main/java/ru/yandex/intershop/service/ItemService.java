@@ -7,7 +7,7 @@ import ru.yandex.intershop.model.Item;
 
 
 public interface ItemService {
-
     Mono<Page<Item>> findItems(String search, SortType sort, int pageNumber, int pageSize);
-    Item getItemById(Long id);
+
+    Mono<Item> getItemById(Long id);
 }

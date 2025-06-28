@@ -39,9 +39,8 @@ public class ItemServiceImpl implements ItemService {
     }
 
     @Override
-    public Item getItemById(Long id) {
-        return new Item();
-//        return itemRepository.getItemById(id);
+    public Mono<Item> getItemById(Long id) {
+        return itemRepository.findById(id);
     }
 
     private Sort getSort(SortType sort) {
