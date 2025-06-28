@@ -66,10 +66,9 @@ public class MainController {
     }
 
     @PostMapping("/buy")
-    public String buy() {
-//        Order order = orderService.createOrderFromCart();
-//        return "redirect:/orders/" + order.getId() + "?newOrder=true";
-        return "";
+    public Mono<String> buy() {
+        return orderService.createOrderFromCart()
+                .map(order -> "redirect:/orders/" + order.getId() + "?newOrder=true");
     }
 
     private List<List<ItemDto>> splitIntoRows(List<ItemDto> items, int itemsPerRow) {

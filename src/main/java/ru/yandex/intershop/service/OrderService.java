@@ -1,11 +1,13 @@
 package ru.yandex.intershop.service;
 
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.yandex.intershop.model.Order;
 
-import java.util.List;
-
 public interface OrderService {
-    Order createOrderFromCart();
-    List<Order> getAllOrders();
-    Order getOrderById(Long id);
+    Mono<Order> createOrderFromCart();
+
+    Flux<Order> getAllOrders();
+
+    Mono<Order> getOrderById(Long id);
 }

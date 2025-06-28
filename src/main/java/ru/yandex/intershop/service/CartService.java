@@ -10,5 +10,5 @@ public interface CartService {
     Mono<Void> updateCartItem(Long itemId, ActionType action);
     Mono<Cart> getCurrentUserCart();
     Mono<BigDecimal> calculateTotal(Cart cart);
-    void saveCart(Cart cart);
+    Mono<Void> saveCart(Cart cart);
 }

@@ -23,4 +23,8 @@ public class Cart {
 
     private Long userId;
 
+    public Cart clearItems() {
+        this.items.clear();
+        return this;
+    }
 }

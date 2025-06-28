@@ -4,6 +4,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import ru.yandex.intershop.enums.ActionType;
+import ru.yandex.intershop.exception.ItemNotFoundException;
+import ru.yandex.intershop.exception.UnknownActionException;
 import ru.yandex.intershop.model.Cart;
 import ru.yandex.intershop.model.CartItem;
 import ru.yandex.intershop.model.Item;
@@ -46,7 +48,7 @@ public class CartServiceImpl implements CartService {
     public Mono<Void> updateCartItem(Long itemId, ActionType action) {
         return getCurrentUserCart()
                 .zipWith(itemRepository.findById(itemId)
-                        .switchIfEmpty(Mono.error(new IllegalStateException("Item not found"))))
+                        .switchIfEmpty(Mono.error(new ItemNotFoundException("Item not found"))))
                 .flatMap(tuple -> {
                     Cart cart = tuple.getT1();
                     Item item = tuple.getT2();
@@ -76,7 +78,7 @@ public class CartServiceImpl implements CartService {
                         .then(Mono.fromRunnable(() -> cart.getItems().remove(cartItem)))
                         .thenReturn(cartItem);
             default:
-                return Mono.error(new IllegalArgumentException("Unknown action: " + action));
+                return Mono.error(new UnknownActionException("Unknown action: " + action));
         }
     }
 
@@ -104,7 +106,8 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    public void saveCart(Cart cart) {
-        cartRepository.save(cart);
+    public Mono<Void> saveCart(Cart cart) {
+        return cartItemRepository.deleteByCartId(cart.getId())
+                .then(cartRepository.save(cart).then());
     }
 }
