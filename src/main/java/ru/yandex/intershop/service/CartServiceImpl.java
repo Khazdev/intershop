@@ -5,6 +5,8 @@ import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import ru.yandex.intershop.enums.ActionType;
 import ru.yandex.intershop.model.Cart;
+import ru.yandex.intershop.model.CartItem;
+import ru.yandex.intershop.model.Item;
 import ru.yandex.intershop.repository.CartItemRepository;
 import ru.yandex.intershop.repository.CartRepository;
 import ru.yandex.intershop.repository.ItemRepository;
@@ -41,52 +43,64 @@ public class CartServiceImpl implements CartService {
     }
 
     @Override
-    public void updateCartItem(Long itemId, ActionType action) {
-//        Cart cart = getCurrentUserCart();
-//        Item item = itemRepository.findById(itemId)
-//                .orElseThrow(() -> new EntityNotFoundException("Item not found"));
-//
-//        Optional<CartItem> existingItem = cartItemRepository.findByCartAndItem(cart, item);
-//
-//        switch (action) {
-//            case PLUS -> {
-//                if (existingItem.isPresent()) {
-//                    CartItem cartItem = existingItem.get();
-//                    cartItem.setQuantity(cartItem.getQuantity() + 1);
-//                    cartItemRepository.save(cartItem);
-//                } else {
-//                    CartItem newCartItem = new CartItem();
-//                    newCartItem.setCart(cart);
-//                    newCartItem.setItem(item);
-//                    newCartItem.setQuantity(1);
-//                    cartItemRepository.save(newCartItem);
-//                    cart.getItems().add(newCartItem);
-//                }
-//            }
-//            case MINUS -> {
-//                if (existingItem.isPresent()) {
-//                    CartItem cartItem = existingItem.get();
-//                    if (cartItem.getQuantity() > 1) {
-//                        cartItem.setQuantity(cartItem.getQuantity() - 1);
-//                        cartItemRepository.save(cartItem);
-//                    } else {
-//                        cartItemRepository.delete(cartItem);
-//                        cart.getItems().remove(cartItem);
-//                    }
-//                }
-//            }
-//            case DELETE -> {
-//                existingItem.ifPresent(cartItem -> {
-//                    cartItemRepository.delete(cartItem);
-//                    cart.getItems().remove(cartItem);
-//                });
+    public Mono<Void> updateCartItem(Long itemId, ActionType action) {
+        return getCurrentUserCart()
+                .zipWith(itemRepository.findById(itemId)
+                        .switchIfEmpty(Mono.error(new IllegalStateException("Item not found"))))
+                .flatMap(tuple -> {
+                    Cart cart = tuple.getT1();
+                    Item item = tuple.getT2();
+                    return cartItemRepository.findByCartIdAndItemId(cart.getId(), item.getId())
+                            .flatMap(cartItem -> handleCartItemUpdate(cart, cartItem, action))
+                            .switchIfEmpty(handleNewCartItem(cart, item, action))
+                            .then();
+                });
+    }
+
+    private Mono<CartItem> handleCartItemUpdate(Cart cart, CartItem cartItem, ActionType action) {
+        switch (action) {
+            case PLUS:
+                cartItem.setQuantity(cartItem.getQuantity() + 1);
+                return cartItemRepository.save(cartItem);
+            case MINUS:
+                if (cartItem.getQuantity() > 1) {
+                    cartItem.setQuantity(cartItem.getQuantity() - 1);
+                    return cartItemRepository.save(cartItem);
+                } else {
+                    return cartItemRepository.delete(cartItem)
+                            .then(Mono.fromRunnable(() -> cart.getItems().remove(cartItem)))
+                            .thenReturn(cartItem);
+                }
+            case DELETE:
+                return cartItemRepository.delete(cartItem)
+                        .then(Mono.fromRunnable(() -> cart.getItems().remove(cartItem)))
+                        .thenReturn(cartItem);
+            default:
+                return Mono.error(new IllegalArgumentException("Unknown action: " + action));
+        }
+    }
+
+    private Mono<CartItem> handleNewCartItem(Cart cart, Item item, ActionType action) {
+        if (action != ActionType.PLUS) {
+            return Mono.empty();
+        }
+        CartItem newCartItem = new CartItem();
+        newCartItem.setCartId(cart.getId());
+        newCartItem.setItemId(item.getId());
+        newCartItem.setQuantity(1);
+        return cartItemRepository.save(newCartItem)
+                .doOnNext(cartItem -> {
+                    cartItem.setCart(cart);
+                    cartItem.setItem(item);
+                    cart.getItems().add(cartItem);
+                });
     }
 
     @Override
-    public BigDecimal calculateTotal(Cart cart) {
-        return cart.getItems().stream()
+    public Mono<BigDecimal> calculateTotal(Cart cart) {
+        return Mono.just(cart.getItems().stream()
                 .map(item -> item.getItem().getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
     }
 
     @Override

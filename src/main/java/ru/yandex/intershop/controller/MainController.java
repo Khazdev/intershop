@@ -3,13 +3,10 @@ package ru.yandex.intershop.controller;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Mono;
 import ru.yandex.intershop.dto.ItemDto;
-import ru.yandex.intershop.enums.ActionType;
+import ru.yandex.intershop.dto.UpdateCartForm;
 import ru.yandex.intershop.enums.SortType;
 import ru.yandex.intershop.mapper.ItemToItemDtoMapper;
 import ru.yandex.intershop.model.Cart;
@@ -63,9 +60,9 @@ public class MainController {
     }
 
     @PostMapping("/main/items/{id}")
-    public String updateMainCart(@PathVariable Long id, @RequestParam ActionType action) {
-        cartService.updateCartItem(id, action);
-        return "redirect:/main/items";
+    public Mono<String> updateMainCart(@PathVariable Long id, @ModelAttribute UpdateCartForm form) {
+        return cartService.updateCartItem(id, form.getAction())
+                .then(Mono.just("redirect:/main/items"));
     }
 
     @PostMapping("/buy")
