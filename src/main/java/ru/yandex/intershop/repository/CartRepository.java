@@ -1,10 +1,9 @@
 package ru.yandex.intershop.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.r2dbc.repository.R2dbcRepository;
+import reactor.core.publisher.Mono;
 import ru.yandex.intershop.model.Cart;
 
-import java.util.Optional;
-
-public interface CartRepository extends JpaRepository<Cart, Long> {
-    Optional<Cart> findByUserId(Long userId);
+public interface CartRepository extends R2dbcRepository<Cart, Long> {
+    Mono<Cart> findByUserId(Long userId);
 }

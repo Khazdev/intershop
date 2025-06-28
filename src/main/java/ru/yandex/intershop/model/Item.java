@@ -1,27 +1,29 @@
 package ru.yandex.intershop.model;
 
-import jakarta.persistence.*;
+
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Transient;
+import org.springframework.data.relational.core.mapping.Column;
+import org.springframework.data.relational.core.mapping.Table;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 
-@Entity
+@Table("items")
 @Getter
 @Setter
-@Table(name = "items")
 public class Item {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String title;
     private String description;
-    @Column(name = "img_path")
+    @Column("img_path")
     private String imgPath;
     private BigDecimal price;
     @Transient
     private int count;
-    @Column(name = "created_at", updatable = false, insertable = false)
+    @Column("created_at")
     private Timestamp createdAt;
 }

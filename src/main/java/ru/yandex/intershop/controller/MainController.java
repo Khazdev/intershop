@@ -1,20 +1,19 @@
 package ru.yandex.intershop.controller;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import reactor.core.publisher.Mono;
 import ru.yandex.intershop.dto.ItemDto;
 import ru.yandex.intershop.enums.ActionType;
 import ru.yandex.intershop.enums.SortType;
 import ru.yandex.intershop.mapper.ItemToItemDtoMapper;
 import ru.yandex.intershop.model.Cart;
 import ru.yandex.intershop.model.Item;
-import ru.yandex.intershop.model.Order;
 import ru.yandex.intershop.model.Paging;
 import ru.yandex.intershop.service.CartService;
 import ru.yandex.intershop.service.ItemService;
@@ -34,29 +33,33 @@ public class MainController {
     private final OrderService orderService;
 
     @GetMapping("/")
-    public String root() {
-        return "redirect:/main/items";
+    public Mono<String> root() {
+        return Mono.just("redirect:/main/items");
     }
 
     @GetMapping("/main/items")
-    public String showItems(@RequestParam(defaultValue = "") String search,
-                            @RequestParam(defaultValue = "NO") SortType sort,
-                            @RequestParam(defaultValue = "10") int pageSize,
-                            @RequestParam(defaultValue = "1") int pageNumber,
-                            Model model) {
+    public Mono<String> showItems(@RequestParam(defaultValue = "") String search,
+                                  @RequestParam(defaultValue = "NO") SortType sort,
+                                  @RequestParam(defaultValue = "10") int pageSize,
+                                  @RequestParam(defaultValue = "1") int pageNumber,
+                                  Model model) {
+        return itemService.findItems(search, sort, pageNumber, pageSize)
+                .zipWith(cartService.getCurrentUserCart())
+                .map(tuple -> {
+                    List<Item> items = tuple.getT1().getContent();
+                    Cart currentUserCart = tuple.getT2();
+                    List<ItemDto> itemDtos = ItemToItemDtoMapper.mapList(items, currentUserCart);
+                    List<List<ItemDto>> result = splitIntoRows(itemDtos, 4);
+                    Paging paging = new Paging(tuple.getT1().getNumber() + 1, tuple.getT1().getSize(),
+                            tuple.getT1().hasNext(), tuple.getT1().hasPrevious());
 
-        Page<Item> page = itemService.findItems(search, sort, pageNumber, pageSize);
-        Cart currentUserCart = cartService.getCurrentUserCart();
-        List<ItemDto> items = ItemToItemDtoMapper.mapList(page.getContent(), currentUserCart);
-        List<List<ItemDto>> result = splitIntoRows(items, 4);
-        Paging paging = new Paging(page.getNumber() + 1, page.getSize(), page.hasNext(), page.hasPrevious());
+                    model.addAttribute("items", result);
+                    model.addAttribute("search", search);
+                    model.addAttribute("sort", sort.name().toUpperCase(Locale.ROOT));
+                    model.addAttribute("paging", paging);
 
-        model.addAttribute("items", result);
-        model.addAttribute("search", search);
-        model.addAttribute("sort", sort.name().toUpperCase(Locale.ROOT));
-        model.addAttribute("paging", paging);
-
-        return "main";
+                    return "main";
+                });
     }
 
     @PostMapping("/main/items/{id}")
@@ -67,8 +70,9 @@ public class MainController {
 
     @PostMapping("/buy")
     public String buy() {
-        Order order = orderService.createOrderFromCart();
-        return "redirect:/orders/" + order.getId() + "?newOrder=true";
+//        Order order = orderService.createOrderFromCart();
+//        return "redirect:/orders/" + order.getId() + "?newOrder=true";
+        return "";
     }
 
     private List<List<ItemDto>> splitIntoRows(List<ItemDto> items, int itemsPerRow) {
