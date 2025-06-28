@@ -1,16 +1,15 @@
 package ru.yandex.intershop.mapper;
 
 import lombok.experimental.UtilityClass;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import ru.yandex.intershop.dto.ItemDto;
 import ru.yandex.intershop.model.Cart;
 import ru.yandex.intershop.model.CartItem;
 import ru.yandex.intershop.model.Item;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-import static org.apache.commons.collections4.CollectionUtils.emptyIfNull;
 
 @UtilityClass
 public class ItemToItemDtoMapper {
@@ -26,14 +25,18 @@ public class ItemToItemDtoMapper {
                 .build();
     }
 
-    public static List<ItemDto> mapList(List<Item> fromList, Cart currentUserCart) {
-        Map<Long, Integer> itemCountMap = currentUserCart.getItems().stream()
-                .collect(Collectors.toMap(
-                        cartItem -> cartItem.getItem().getId(),
-                        CartItem::getQuantity));
-
-        return emptyIfNull(fromList).stream()
-                .map(item -> map(item, itemCountMap.getOrDefault(item.getId(), 0)))
-                .collect(Collectors.toList());
+    public static Mono<List<ItemDto>> mapList(Flux<Item> items, Mono<Cart> cart) {
+        return cart.flatMap(currentUserCart ->
+                Flux.fromIterable(currentUserCart.getItems())
+                        .collectMap(
+                                cartItem -> cartItem.getItem().getId(),
+                                CartItem::getQuantity
+                        )
+                        .flatMap(itemCountMap ->
+                                items.switchIfEmpty(Flux.fromIterable(Collections.emptyList()))
+                                        .map(item -> map(item, itemCountMap.getOrDefault(item.getId(), 0)))
+                                        .collectList()
+                        )
+        );
     }
 }

@@ -27,25 +27,36 @@ public class ItemsController {
 
     @GetMapping("/{id}")
     public Mono<String> getItem(@PathVariable Long id, Model model) {
-        return Mono.zip(itemService.getItemById(id), cartService.getCurrentUserCart())
-                .map(tuple -> {
-                    Item item = tuple.getT1();
-                    Cart currentUserCart = tuple.getT2();
-                    int count = currentUserCart.getItems().stream()
-                            .filter(cartItem -> cartItem.getItem().getId().equals(id))
-                            .map(CartItem::getQuantity)
-                            .findFirst()
-                            .orElse(0);
-                    ItemDto itemDto = ItemToItemDtoMapper.map(item, count);
-                    model.addAttribute("item", itemDto);
-                    return "item";
-                });
+        return fetchItemAndCart(id)
+                .flatMap(tuple -> prepareItemView(tuple.getT1(), tuple.getT2(), model)
+                        .thenReturn("item"));
     }
 
     @PostMapping("/{id}")
     public Mono<String> updateItem(@PathVariable Long id, @ModelAttribute UpdateCartForm form) {
         return cartService.updateCartItem(id, form.getAction())
                 .then(Mono.just("redirect:/items/" + id));
+    }
+
+    private Mono<Tuple2<Item, Cart>> fetchItemAndCart(Long itemId) {
+        return Mono.zip(itemService.getItemById(itemId), cartService.getCurrentUserCart());
+    }
+
+    private Mono<Void> prepareItemView(Item item, Cart cart, Model model) {
+        return getItemQuantityInCart(item.getId(), cart)
+                .doOnNext(quantity -> {
+                    ItemDto itemDto = ItemToItemDtoMapper.map(item, quantity);
+                    model.addAttribute("item", itemDto);
+                })
+                .then();
+    }
+
+    private Mono<Integer> getItemQuantityInCart(Long itemId, Cart cart) {
+        return Flux.fromIterable(cart.getItems())
+                .filter(cartItem -> cartItem.getItem().getId().equals(itemId))
+                .map(CartItem::getQuantity)
+                .next()
+                .defaultIfEmpty(0);
     }
 
 }

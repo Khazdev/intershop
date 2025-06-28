@@ -27,6 +27,14 @@ public class CartController {
                         .thenReturn("cart"));
     }
 
+    @PostMapping("/{id}")
+    public Mono<String> updateCartItem(
+            @PathVariable Long id,
+            @ModelAttribute UpdateCartForm form) {
+        return cartService.updateCartItem(id, form.getAction())
+                .then(Mono.just("redirect:/cart/items"));
+    }
+
     private Mono<Void> prepareCartView(Cart cart, Model model) {
         return transformCartItems(cart)
                 .collectList()
@@ -48,13 +56,5 @@ public class CartController {
         model.addAttribute("items", items);
         model.addAttribute("total", total);
         model.addAttribute("empty", cart.getItems().isEmpty());
-    }
-
-    @PostMapping("/{id}")
-    public Mono<String> updateCartItem(
-            @PathVariable Long id,
-            @ModelAttribute UpdateCartForm form) {
-        return cartService.updateCartItem(id, form.getAction())
-                .then(Mono.just("redirect:/cart/items"));
     }
 }

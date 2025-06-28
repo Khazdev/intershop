@@ -1,10 +1,13 @@
 package ru.yandex.intershop.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.function.Tuple2;
 import ru.yandex.intershop.dto.ItemDto;
 import ru.yandex.intershop.dto.UpdateCartForm;
 import ru.yandex.intershop.enums.SortType;
@@ -18,8 +21,6 @@ import ru.yandex.intershop.service.OrderService;
 
 import java.util.List;
 import java.util.Locale;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 @Controller
 @RequiredArgsConstructor
@@ -40,23 +41,9 @@ public class MainController {
                                   @RequestParam(defaultValue = "10") int pageSize,
                                   @RequestParam(defaultValue = "1") int pageNumber,
                                   Model model) {
-        return itemService.findItems(search, sort, pageNumber, pageSize)
-                .zipWith(cartService.getCurrentUserCart())
-                .map(tuple -> {
-                    List<Item> items = tuple.getT1().getContent();
-                    Cart currentUserCart = tuple.getT2();
-                    List<ItemDto> itemDtos = ItemToItemDtoMapper.mapList(items, currentUserCart);
-                    List<List<ItemDto>> result = splitIntoRows(itemDtos, 4);
-                    Paging paging = new Paging(tuple.getT1().getNumber() + 1, tuple.getT1().getSize(),
-                            tuple.getT1().hasNext(), tuple.getT1().hasPrevious());
-
-                    model.addAttribute("items", result);
-                    model.addAttribute("search", search);
-                    model.addAttribute("sort", sort.name().toUpperCase(Locale.ROOT));
-                    model.addAttribute("paging", paging);
-
-                    return "main";
-                });
+        return fetchItemsAndCart(search, sort, pageNumber, pageSize)
+                .flatMap(tuple -> prepareItemsView(tuple.getT1(), tuple.getT2(), search, sort, model))
+                .thenReturn("main");
     }
 
     @PostMapping("/main/items/{id}")
@@ -71,12 +58,42 @@ public class MainController {
                 .map(order -> "redirect:/orders/" + order.getId() + "?newOrder=true");
     }
 
-    private List<List<ItemDto>> splitIntoRows(List<ItemDto> items, int itemsPerRow) {
-        return IntStream.range(0, (items.size() + itemsPerRow - 1) / itemsPerRow)
-                .mapToObj(i -> items.subList(
-                        i * itemsPerRow,
-                        Math.min((i + 1) * itemsPerRow, items.size())
-                ))
-                .collect(Collectors.toList());
+    private Mono<Tuple2<Page<Item>, Cart>> fetchItemsAndCart(String search, SortType sort, int pageNumber, int pageSize) {
+        return itemService.findItems(search, sort, pageNumber, pageSize)
+                .zipWith(cartService.getCurrentUserCart());
+    }
+
+    private Mono<Void> prepareItemsView(Page<Item> itemPage, Cart cart, String search, SortType sort, Model model) {
+        return ItemToItemDtoMapper.mapList(Flux.fromIterable(itemPage.getContent()), Mono.just(cart))
+                .flatMap(itemDtos -> splitIntoRows(itemDtos, 4)
+                        .collectList()
+                        .doOnNext(rows -> addAttributesToModel(itemPage, rows, search, sort, model))
+                        .then());
+    }
+
+    private void addAttributesToModel(Page<Item> itemPage, List<List<ItemDto>> rows, String search, SortType sort, Model model) {
+        Paging paging = new Paging(itemPage.getNumber() + 1, itemPage.getSize(),
+                itemPage.hasNext(), itemPage.hasPrevious());
+        model.addAttribute("items", rows);
+        model.addAttribute("search", search);
+        model.addAttribute("sort", sort.name().toUpperCase(Locale.ROOT));
+        model.addAttribute("paging", paging);
+    }
+    public Flux<List<ItemDto>> splitIntoRows(List<ItemDto> items, int itemsPerRow) {
+        if (items == null || itemsPerRow <= 0) {
+            return Flux.empty();
+        }
+        return Flux.range(0, calculateRowCount(items.size(), itemsPerRow))
+                .map(rowIndex -> getRowItems(items, rowIndex, itemsPerRow));
+    }
+
+    private int calculateRowCount(int totalItems, int itemsPerRow) {
+        return (totalItems + itemsPerRow - 1) / itemsPerRow;
+    }
+
+    private List<ItemDto> getRowItems(List<ItemDto> items, int rowIndex, int itemsPerRow) {
+        int startIndex = rowIndex * itemsPerRow;
+        int endIndex = Math.min(startIndex + itemsPerRow, items.size());
+        return items.subList(startIndex, endIndex);
     }
 }
