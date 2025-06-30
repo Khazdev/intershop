@@ -1,6 +1,7 @@
 package ru.yandex.intershop.service;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import ru.yandex.intershop.enums.ActionType;
@@ -15,6 +16,7 @@ import ru.yandex.intershop.repository.ItemRepository;
 
 import java.math.BigDecimal;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class CartServiceImpl implements CartService {
@@ -46,43 +48,48 @@ public class CartServiceImpl implements CartService {
 
     @Override
     public Mono<Void> updateCartItem(Long itemId, ActionType action) {
+        log.debug("Updating cart item with itemId: {}, action: {}", itemId, action);
         return getCurrentUserCart()
                 .zipWith(itemRepository.findById(itemId)
                         .switchIfEmpty(Mono.error(new ItemNotFoundException("Item not found"))))
                 .flatMap(tuple -> {
                     Cart cart = tuple.getT1();
                     Item item = tuple.getT2();
+                    log.debug("Found cart with ID: {}, item with ID: {}", cart.getId(), item.getId());
                     return cartItemRepository.findByCartIdAndItemId(cart.getId(), item.getId())
-                            .flatMap(cartItem -> handleCartItemUpdate(cart, cartItem, action))
-                            .switchIfEmpty(handleNewCartItem(cart, item, action))
-                            .then();
+                            .flatMap(cartItem -> {
+                                log.debug("Found existing cart item with quantity: {}", cartItem.getQuantity());
+                                return handleCartItemUpdate(cart, cartItem, action);
+                            })
+                            .switchIfEmpty(Mono.defer(() -> {
+                                log.debug("No existing cart item, creating new one");
+                                return handleNewCartItem(cart, item, action);
+                            }));
                 });
     }
 
-    private Mono<CartItem> handleCartItemUpdate(Cart cart, CartItem cartItem, ActionType action) {
+    private Mono<Void> handleCartItemUpdate(Cart cart, CartItem cartItem, ActionType action) {
         switch (action) {
             case PLUS:
                 cartItem.setQuantity(cartItem.getQuantity() + 1);
-                return cartItemRepository.save(cartItem);
+                return cartItemRepository.save(cartItem).then();
             case MINUS:
                 if (cartItem.getQuantity() > 1) {
                     cartItem.setQuantity(cartItem.getQuantity() - 1);
-                    return cartItemRepository.save(cartItem);
+                    return cartItemRepository.save(cartItem).then();
                 } else {
                     return cartItemRepository.delete(cartItem)
-                            .then(Mono.fromRunnable(() -> cart.getItems().remove(cartItem)))
-                            .thenReturn(cartItem);
+                            .then(Mono.fromRunnable(() -> cart.getItems().remove(cartItem)));
                 }
             case DELETE:
                 return cartItemRepository.delete(cartItem)
-                        .then(Mono.fromRunnable(() -> cart.getItems().remove(cartItem)))
-                        .thenReturn(cartItem);
+                        .then(Mono.fromRunnable(() -> cart.getItems().remove(cartItem)));
             default:
                 return Mono.error(new UnknownActionException("Unknown action: " + action));
         }
     }
 
-    private Mono<CartItem> handleNewCartItem(Cart cart, Item item, ActionType action) {
+    private Mono<Void> handleNewCartItem(Cart cart, Item item, ActionType action) {
         if (action != ActionType.PLUS) {
             return Mono.empty();
         }
@@ -95,7 +102,7 @@ public class CartServiceImpl implements CartService {
                     cartItem.setCart(cart);
                     cartItem.setItem(item);
                     cart.getItems().add(cartItem);
-                });
+                }).then();
     }
 
     @Override

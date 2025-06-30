@@ -9,7 +9,7 @@ import org.springframework.data.relational.core.mapping.MappedCollection;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.math.BigDecimal;
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,5 +28,5 @@ public class Order {
     private BigDecimal totalSum;
 
     @Column("created_at")
-    private Timestamp createdAt;
+    private LocalDateTime createdAt;
 }

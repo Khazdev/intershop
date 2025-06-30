@@ -9,7 +9,7 @@ import org.springframework.data.relational.core.mapping.Column;
 import org.springframework.data.relational.core.mapping.Table;
 
 import java.math.BigDecimal;
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
 
 @Table("items")
 @Getter
@@ -25,5 +25,5 @@ public class Item {
     @Transient
     private int count;
     @Column("created_at")
-    private Timestamp createdAt;
+    private LocalDateTime createdAt;
 }
