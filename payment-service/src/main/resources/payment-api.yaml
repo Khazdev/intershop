@@ -1,0 +1,104 @@
+openapi: 3.0.1
+info:
+  title: API сервиса платежей
+  description: API сервиса платежей
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8081
+    description: Локальный сервер разработки
+
+paths:
+  /payments:
+    post:
+      tags:
+        - Payment
+      summary: Обработать платеж
+      description: Списание суммы с баланса пользователя
+      operationId: processPayment
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentRequest'
+      responses:
+        '200':
+          description: Платеж успешно обработан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentResponse'
+        '400':
+          description: Некорректный запрос платежа
+        '422':
+          description: Недостаточно средств
+  /payments/balance/{userId}:
+    get:
+      summary: Получить баланс пользователя
+      operationId: getBalance
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+            example: 1283417293867
+      responses:
+        '200':
+          description: Баланс получен
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BalanceResponse"
+        '404':
+          description: Пользователь не найден
+components:
+  schemas:
+    PaymentRequest:
+      type: object
+      required:
+        - userId
+        - amount
+      properties:
+        userId:
+          type: integer
+          format: int64
+          example: 1283417293867
+        amount:
+          type: number
+          format: decimal
+          example: 99.99
+        orderId:
+          type: integer
+          format: int64
+          example: 1283417293867
+    PaymentResponse:
+      type: object
+      properties:
+        transactionId:
+          type: string
+          format: uuid
+          example: "550e8400-e29b-41d4-a716-446655440002"
+        status:
+          type: string
+          enum: [SUCCESS, FAILED]
+          example: "SUCCESS"
+        message:
+          type: string
+          example: "Платеж успешно обработан"
+    BalanceResponse:
+      type: object
+      properties:
+        userId:
+          type: integer
+          format: int64
+          example: 1283417293867
+        amount:
+          type: number
+          format: decimal
+          example: 1000.50
+      required:
+        - userId
+        - amount
