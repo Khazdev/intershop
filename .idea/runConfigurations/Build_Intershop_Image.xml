@@ -5,7 +5,7 @@
         <option name="imageTag" value="intershop:latest" />
         <option name="buildCliOptions" value="--load" />
         <option name="containerName" value="intershop" />
-        <option name="sourceFilePath" value="Dockerfile" />
+        <option name="sourceFilePath" value="intershop-main/Dockerfile" />
       </settings>
     </deployment>
     <method v="2">
