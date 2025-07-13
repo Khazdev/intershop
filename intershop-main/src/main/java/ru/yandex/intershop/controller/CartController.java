@@ -1,11 +1,13 @@
 package ru.yandex.intershop.controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import ru.yandex.intershop.client.PaymentClient;
 import ru.yandex.intershop.dto.UpdateCartForm;
 import ru.yandex.intershop.model.Cart;
 import ru.yandex.intershop.model.Item;
@@ -14,11 +16,13 @@ import ru.yandex.intershop.service.CartService;
 import java.math.BigDecimal;
 import java.util.List;
 
+@Slf4j
 @Controller
 @RequestMapping("/cart/items")
 @RequiredArgsConstructor
 public class CartController {
     private final CartService cartService;
+    private final PaymentClient paymentClient;
 
     @GetMapping
     public Mono<String> showCart(Model model) {
@@ -36,11 +40,30 @@ public class CartController {
     }
 
     private Mono<Void> prepareCartView(Cart cart, Model model) {
-        return transformCartItems(cart)
-                .collectList()
-                .flatMap(items -> cartService.calculateTotal(cart)
-                        .doOnNext(total -> addAttributesToModel(cart, items, total, model))
-                        .then());
+        return cartService.calculateTotal(cart)
+                .flatMap(total -> Mono.zip(
+                                transformCartItems(cart).collectList(),
+                                checkUserBalance(cart.getUserId(), total)
+                        )
+                        .doOnNext(tuple -> {
+                            List<Item> items = tuple.getT1();
+                            boolean hasEnoughFunds = tuple.getT2();
+
+                            addAttributesToModel(cart, items, total, model);
+                            model.addAttribute("hasEnoughFunds", hasEnoughFunds);
+                        }))
+                .then();
+    }
+
+    private Mono<Boolean> checkUserBalance(Long userId, BigDecimal requiredAmount) {
+        return paymentClient.getUserBalance(userId)
+                .doOnError(e -> log.error("Balance check failed for user {}", userId, e))
+                .map(balance -> {
+                    log.debug("Comparing balance {} with required {}", balance, requiredAmount);
+                    return balance.compareTo(requiredAmount) >= 0;
+                })
+                .defaultIfEmpty(false)
+                .onErrorReturn(false);
     }
 
     private Flux<Item> transformCartItems(Cart cart) {

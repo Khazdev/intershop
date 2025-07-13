@@ -54,7 +54,10 @@
     <tr>
         <td style="text-align:right">
             <form action="/buy" method="post" th:if="${!empty}">
-                <button>Купить</button>
+                <button th:disabled="${!hasEnoughFunds}">Купить</button>
+                <div th:if="${!hasEnoughFunds}" style="color: #d32f2f">
+                    Недостаточно средств на балансе
+                </div>
             </form>
         </td>
     </tr>
