@@ -1,0 +1,11 @@
+spring:
+  application:
+    name: payment-service
+server:
+  port: 8081
+payment:
+  balances:
+    - userId: 1
+      amount: 15000.00
+    - userId: 2
+      amount: 5000.00
