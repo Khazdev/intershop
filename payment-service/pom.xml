@@ -71,11 +71,13 @@
                             <apiPackage>ru.yandex.intershop.payment.api</apiPackage>
                             <invokerPackage>ru.yandex.intershop.payment</invokerPackage>
                             <modelPackage>ru.yandex.intershop.payment.model</modelPackage>
-                            <invokerPackage>ru.yandex.intershop.payment</invokerPackage>
                             <configOptions>
                                 <library>spring-boot</library>
                                 <reactive>true</reactive>
                                 <useJakartaEe>true</useJakartaEe>
+                                <withBuilder>true</withBuilder>
+                                <interfaceOnly>true</interfaceOnly>
+                                <useSpringBoot3>true</useSpringBoot3>
                             </configOptions>
                         </configuration>
                     </execution>
