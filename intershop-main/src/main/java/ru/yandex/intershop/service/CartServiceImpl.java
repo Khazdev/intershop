@@ -57,14 +57,18 @@ public class CartServiceImpl implements CartService {
                     Item item = tuple.getT2();
                     log.debug("Found cart with ID: {}, item with ID: {}", cart.getId(), item.getId());
                     return cartItemRepository.findByCartIdAndItemId(cart.getId(), item.getId())
-                            .flatMap(cartItem -> {
-                                log.debug("Found existing cart item with quantity: {}", cartItem.getQuantity());
-                                return handleCartItemUpdate(cart, cartItem, action);
+                            .flatMap(existingItem -> {
+                                log.debug("Found existing cart item with quantity: {}", existingItem.getQuantity());
+                                return handleCartItemUpdate(cart, existingItem, action)
+                                        .thenReturn(true);
                             })
-                            .switchIfEmpty(Mono.defer(() -> {
-                                log.debug("No existing cart item, creating new one");
-                                return handleNewCartItem(cart, item, action);
-                            }));
+                            .defaultIfEmpty(false)
+                            .flatMap(found -> {
+                                if (!found && action == ActionType.PLUS) {
+                                    return handleNewCartItem(cart, item, action);
+                                }
+                                return Mono.empty();
+                            });
                 });
     }
 
