@@ -68,11 +68,11 @@ public class CartController {
     }
 
     private Mono<Boolean> checkUserBalanceWithFallback(Long userId, BigDecimal total, Model model) {
+        model.addAttribute("paymentServiceAvailable", true);
         return checkUserBalance(userId, total, model)
-                .onErrorResume(e -> handlePaymentServiceError(model, e))
-                .doOnSuccess(hasEnoughFunds -> {
-                    model.addAttribute("paymentServiceAvailable", true);
+                .flatMap(hasEnoughFunds -> {
                     model.addAttribute("hasEnoughFunds", hasEnoughFunds);
+                    return Mono.just(hasEnoughFunds);
                 });
     }
 
