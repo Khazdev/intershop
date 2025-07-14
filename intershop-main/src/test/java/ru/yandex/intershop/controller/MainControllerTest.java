@@ -10,6 +10,9 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
+import ru.yandex.intershop.client.PaymentClient;
+import ru.yandex.intershop.client.payment.model.PaymentRequest;
+import ru.yandex.intershop.client.payment.model.PaymentResponse;
 import ru.yandex.intershop.configuration.TestConfig;
 import ru.yandex.intershop.dto.UpdateCartForm;
 import ru.yandex.intershop.enums.ActionType;
@@ -22,6 +25,7 @@ import ru.yandex.intershop.service.ItemService;
 import ru.yandex.intershop.service.OrderService;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.mockito.Mockito.*;
 
@@ -40,6 +44,9 @@ class MainControllerTest {
 
     @Autowired
     private OrderService orderService;
+
+    @Autowired
+    private PaymentClient paymentClient;
 
     @BeforeEach
     void setUp() {
@@ -114,6 +121,12 @@ class MainControllerTest {
         order.setId(1L);
         when(orderService.createOrderFromCart()).thenReturn(Mono.just(order));
 
+        PaymentResponse successResponse = new PaymentResponse()
+                .status(PaymentResponse.StatusEnum.SUCCESS)
+                .transactionId(UUID.randomUUID());
+
+        when(paymentClient.processPayment(any(PaymentRequest.class)))
+                .thenReturn(Mono.just(successResponse));
         webTestClient.post().uri("/buy")
                 .exchange()
                 .expectStatus().is3xxRedirection()

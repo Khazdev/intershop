@@ -3,6 +3,7 @@ package ru.yandex.intershop.configuration;
 import org.mockito.Mockito;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;
+import ru.yandex.intershop.client.PaymentClient;
 import ru.yandex.intershop.service.CartService;
 import ru.yandex.intershop.service.ItemService;
 import ru.yandex.intershop.service.OrderService;
@@ -22,6 +23,11 @@ public class TestConfig {
     @Bean
     OrderService orderService() {
         return Mockito.mock(OrderService.class);
+    }
+
+    @Bean
+    PaymentClient paymentClient() {
+        return Mockito.mock(PaymentClient.class);
     }
 
 }
