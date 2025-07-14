@@ -24,4 +24,14 @@ public class BalanceService {
                 new ResponseStatusException(HttpStatus.NOT_FOUND, "Пользователь не найден")
         ));
     }
+
+    public Mono<Void> deductBalance(Long userId, BigDecimal amount) {
+        return Mono.fromCallable(() -> {
+            paymentConfig.getBalances().replaceAll(balance ->
+                    balance.userId().equals(userId) ?
+                            new PaymentConfig.Balance(userId, balance.amount().subtract(amount)) : balance
+            );
+            return null;
+        });
+    }
 }
