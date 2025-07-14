@@ -1,0 +1,36 @@
+services:
+  main-app:
+    build: ./intershop-main
+    ports:
+      - "8080:8080"
+    environment:
+      - PAYMENT_SERVICE_URL=http://payment-service:8081
+      - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - app-network
+
+  payment-service:
+    build: ./payment-service
+    ports:
+      - "8081:8081"
+    networks:
+      - app-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  redis_data:
+    driver: local
+    name: redis_persistent_data
