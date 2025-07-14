@@ -16,6 +16,7 @@ import ru.yandex.intershop.exception.PaymentServiceUnavailableException;
 import ru.yandex.intershop.exception.UserNotFoundException;
 
 import java.math.BigDecimal;
+import java.time.Duration;
 import java.util.Objects;
 
 @Component
@@ -46,6 +47,7 @@ public class PaymentClient {
                 .onStatus(HttpStatus.UNPROCESSABLE_ENTITY::equals, this::handleUnprocessableEntity)
                 .onStatus(HttpStatusCode::is5xxServerError, this::handleServiceUnavailable)
                 .bodyToMono(PaymentResponse.class)
+                .timeout(Duration.ofSeconds(3))
                 .onErrorMap(this::mapToPaymentUnavailableException);
     }
 
@@ -57,6 +59,7 @@ public class PaymentClient {
                 .onStatus(HttpStatus.NOT_FOUND::equals, this::handleUserNotFound)
                 .onStatus(HttpStatusCode::is5xxServerError, this::handleServiceUnavailable)
                 .bodyToMono(BalanceResponse.class)
+                .timeout(Duration.ofSeconds(3))
                 .map(BalanceResponse::getAmount)
                 .onErrorResume(this::handleBalanceError);
     }
