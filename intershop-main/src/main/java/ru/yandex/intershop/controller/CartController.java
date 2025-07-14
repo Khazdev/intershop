@@ -15,7 +15,6 @@ import ru.yandex.intershop.model.Item;
 import ru.yandex.intershop.service.CartService;
 
 import java.math.BigDecimal;
-import java.util.List;
 
 @Slf4j
 @Controller
@@ -47,24 +46,34 @@ public class CartController {
     }
 
     private Mono<Void> prepareModelAttributes(Cart cart, BigDecimal total, Model model) {
-        Mono<Boolean> balanceCheck = checkUserBalance(cart.getUserId(), total, model)
-                .onErrorResume(e -> handlePaymentServiceError(model, e));
+        boolean isCartEmpty = cart.getItems().isEmpty();
+        model.addAttribute("isEmptyCart", isCartEmpty);
+        model.addAttribute("total", total);
 
-        Mono<List<Item>> itemsMono = transformCartItems(cart).collectList();
+        if (isCartEmpty || total.compareTo(BigDecimal.ZERO) == 0) {
+            return Mono.empty();
+        }
 
-        return Mono.zip(itemsMono, balanceCheck)
-                .doOnNext(tuple -> {
-                    List<Item> items = tuple.getT1();
-                    boolean hasEnoughFunds = tuple.getT2();
+        return prepareItemsAttributes(cart, total, model);
+    }
 
-                    addAttributesToModel(cart, items, total, model);
-                    if (!model.containsAttribute("paymentServiceAvailable")) {
-                        model.addAttribute("paymentServiceAvailable", true);
-                        model.addAttribute("hasEnoughFunds", hasEnoughFunds);
-                    }
-
+    private Mono<Void> prepareItemsAttributes(Cart cart, BigDecimal total, Model model) {
+        return transformCartItems(cart)
+                .collectList()
+                .flatMap(items -> {
+                    model.addAttribute("items", items);
+                    return checkUserBalanceWithFallback(cart.getUserId(), total, model);
                 })
                 .then();
+    }
+
+    private Mono<Boolean> checkUserBalanceWithFallback(Long userId, BigDecimal total, Model model) {
+        return checkUserBalance(userId, total, model)
+                .onErrorResume(e -> handlePaymentServiceError(model, e))
+                .doOnSuccess(hasEnoughFunds -> {
+                    model.addAttribute("paymentServiceAvailable", true);
+                    model.addAttribute("hasEnoughFunds", hasEnoughFunds);
+                });
     }
 
     private Mono<Boolean> handlePaymentServiceError(Model model, Throwable error) {
@@ -93,11 +102,5 @@ public class CartController {
                     item.setCount(cartItem.getQuantity());
                     return item;
                 });
-    }
-
-    private void addAttributesToModel(Cart cart, List<Item> items, BigDecimal total, Model model) {
-        model.addAttribute("items", items);
-        model.addAttribute("total", total);
-        model.addAttribute("empty", cart.getItems().isEmpty());
     }
 }
