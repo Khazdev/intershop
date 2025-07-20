@@ -23,27 +23,15 @@ public class CartServiceImpl implements CartService {
     private final CartRepository cartRepository;
     private final ItemRepository itemRepository;
     private final CartItemRepository cartItemRepository;
+    private final AuthService authService;
 
     @Override
     public Mono<Cart> getCurrentUserCart() {
-        Long userId = 1L;
-        return cartRepository.findByUserId(userId)
-                .switchIfEmpty(Mono.defer(() -> {
-                    Cart newCart = new Cart();
-                    newCart.setUserId(userId);
-                    return cartRepository.save(newCart);
-                }))
-                .flatMap(cart -> cartItemRepository.findByCartId(cart.getId())
-                        .flatMap(cartItem -> itemRepository.findById(cartItem.getItemId())
-                                .map(item -> {
-                                    cartItem.setItem(item);
-                                    return cartItem;
-                                }))
-                        .collectList()
-                        .map(cartItems -> {
-                            cart.setItems(cartItems);
-                            return cart;
-                        }));
+        return authService.getAuthenticatedUserId()
+                .flatMap(this::getOrCreateCart)
+                .flatMap(this::populateCartItems)
+                .switchIfEmpty(Mono.empty())
+                .onErrorResume(e -> Mono.empty());
     }
 
     @Override
@@ -71,6 +59,21 @@ public class CartServiceImpl implements CartService {
                             });
                 });
     }
+
+
+    @Override
+    public Mono<BigDecimal> calculateTotal(Cart cart) {
+        return Mono.just(cart.getItems().stream()
+                .map(item -> item.getItem().getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
+                .reduce(BigDecimal.ZERO, BigDecimal::add));
+    }
+
+    @Override
+    public Mono<Void> saveCart(Cart cart) {
+        return cartItemRepository.deleteByCartId(cart.getId())
+                .then(cartRepository.save(cart).then());
+    }
+
 
     private Mono<Void> handleCartItemUpdate(Cart cart, CartItem cartItem, ActionType action) {
         switch (action) {
@@ -109,16 +112,26 @@ public class CartServiceImpl implements CartService {
                 }).then();
     }
 
-    @Override
-    public Mono<BigDecimal> calculateTotal(Cart cart) {
-        return Mono.just(cart.getItems().stream()
-                .map(item -> item.getItem().getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
-                .reduce(BigDecimal.ZERO, BigDecimal::add));
+    private Mono<Cart> getOrCreateCart(Long userId) {
+        return cartRepository.findByUserId(userId)
+                .switchIfEmpty(Mono.defer(() -> {
+                    Cart newCart = new Cart();
+                    newCart.setUserId(userId);
+                    return cartRepository.save(newCart);
+                }));
     }
 
-    @Override
-    public Mono<Void> saveCart(Cart cart) {
-        return cartItemRepository.deleteByCartId(cart.getId())
-                .then(cartRepository.save(cart).then());
+    private Mono<Cart> populateCartItems(Cart cart) {
+        return cartItemRepository.findByCartId(cart.getId())
+                .flatMap(cartItem -> itemRepository.findById(cartItem.getItemId())
+                        .map(item -> {
+                            cartItem.setItem(item);
+                            return cartItem;
+                        }))
+                .collectList()
+                .map(cartItems -> {
+                    cart.setItems(cartItems);
+                    return cart;
+                });
     }
 }

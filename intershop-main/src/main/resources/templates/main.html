@@ -7,12 +7,25 @@
 </head>
 
 <body>
-<a href="/orders" style="float:right;">
-    <b>ЗАКАЗЫ &cudarrr;</b>
-</a>
-<a href="/cart/items" style="float:right;">
-    <b>КОРЗИНА &cudarrr;</b>
-</a>
+
+<div th:if="${isAuthenticated}">
+    <form th:action="@{/logout}" method="post">
+        <button type="submit">Выйти</button>
+    </form>
+</div>
+<div th:if="${!isAuthenticated}">
+    <a href="/login">Войти</a>
+</div>
+
+<div th:if="${isAuthenticated}">
+    <a href="/orders" style="float:right;">
+        <b>ЗАКАЗЫ &cudarrr;</b>
+    </a>
+    <a href="/cart/items" style="float:right;">
+        <b>КОРЗИНА &cudarrr;</b>
+    </a>
+</div>
+
 <table style="width:70%;margin-left:auto;margin-right:auto;">
     <tr>
         <td>
@@ -71,18 +84,20 @@
                 <tr>
                     <td th:text="${item.getDescription()}"></td>
                 </tr>
-                <tr>
-                    <td>
-                        <form th:action="${'/main/items/'+item.getId()}" method="post">
-                            <button name="action" value="MINUS" th:disabled="${item.getCount() == 0}">-</button>
-                            <span th:text="${item.getCount()}"></span>
-                            <button name="action" value="PLUS">+</button>
-                            <button name="action" value="PLUS" th:if="${item.getCount()==0}" style="float:right;">В
-                                корзину
-                            </button>
-                        </form>
-                    </td>
-                </tr>
+                <div th:if="${isAuthenticated}">
+                    <tr>
+                        <td>
+                            <form th:action="${'/main/items/'+item.getId()}" method="post">
+                                <button name="action" value="MINUS" th:disabled="${item.getCount() == 0}">-</button>
+                                <span th:text="${item.getCount()}"></span>
+                                <button name="action" value="PLUS">+</button>
+                                <button name="action" value="PLUS" th:if="${item.getCount()==0}" style="float:right;">В
+                                    корзину
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                </div>
             </table>
         </td>
     </tr>
