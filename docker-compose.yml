@@ -1,6 +1,8 @@
 services:
   main-app:
-    build: ./intershop-main
+    build:
+      context: .                                 # корень проекта
+      dockerfile: intershop-main/Dockerfile
     ports:
       - "8080:8080"
     environment:
@@ -13,7 +15,9 @@ services:
       - app-network
 
   payment-service:
-    build: ./payment-service
+    build:
+      context: .                                 # корень проекта
+      dockerfile: payment-service/Dockerfile     # путь к Dockerfile
     ports:
       - "8081:8081"
     networks:
@@ -34,6 +38,7 @@ services:
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: admin
       KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: true
     ports:
       - "8082:8080"
     command: ["start-dev", "--import-realm"]

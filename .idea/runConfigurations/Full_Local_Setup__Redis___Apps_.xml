@@ -1,8 +1,0 @@
-<component name="ProjectRunConfigurationManager">
-  <configuration default="false" name="Full Local Setup (Redis + Apps)" type="CompoundRunConfigurationType">
-    <toRun name="Redis Docker" type="docker-deploy" />
-    <toRun name="Intershop" type="SpringBootApplicationConfigurationType" />
-    <toRun name="PaymentServiceApplication" type="SpringBootApplicationConfigurationType" />
-    <method v="2" />
-  </configuration>
-</component>
