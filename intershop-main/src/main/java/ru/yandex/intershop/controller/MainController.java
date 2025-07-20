@@ -55,7 +55,7 @@ public class MainController {
     }
 
     @PostMapping("/main/items/{id}")
-        @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public Mono<String> updateMainCart(@PathVariable Long id, @ModelAttribute UpdateCartForm form) {
         return cartService.updateCartItem(id, form.getAction())
                 .then(Mono.just("redirect:/main/items"));

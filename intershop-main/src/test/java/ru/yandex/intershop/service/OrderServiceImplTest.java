@@ -9,16 +9,17 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
+import ru.yandex.intershop.client.PaymentClient;
+import ru.yandex.intershop.client.payment.model.PaymentRequest;
+import ru.yandex.intershop.client.payment.model.PaymentResponse;
 import ru.yandex.intershop.exception.EmptyCartException;
 import ru.yandex.intershop.exception.OrderNotFoundException;
-import ru.yandex.intershop.model.Cart;
-import ru.yandex.intershop.model.CartItem;
-import ru.yandex.intershop.model.Item;
-import ru.yandex.intershop.model.Order;
+import ru.yandex.intershop.model.*;
 import ru.yandex.intershop.repository.OrderRepository;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -31,6 +32,9 @@ class OrderServiceImplTest {
 
     @Mock
     private CartService cartService;
+
+    @Mock
+    private PaymentClient paymentClient;
 
     @InjectMocks
     private OrderServiceImpl orderService;
@@ -58,24 +62,56 @@ class OrderServiceImplTest {
         cart.getItems().add(cartItem);
     }
 
-    @Test
-    void createOrderFromCart_validCart_createsOrder() {
-        when(cartService.getCurrentUserCart()).thenReturn(Mono.just(cart));
-        when(orderRepository.save(any(Order.class))).thenAnswer(invocation -> Mono.just(invocation.getArgument(0)));
-        when(cartService.saveCart(cart)).thenReturn(Mono.empty());
+        @Test
+        void createOrderFromCart_validCart_createsOrder() {
+            Item item = new Item();
+            item.setId(1L);
+            item.setPrice(new BigDecimal("10.00"));
 
-        Mono<Order> result = orderService.createOrderFromCart();
+            CartItem cartItem = new CartItem();
+            cartItem.setItemId(1L);
+            cartItem.setQuantity(2);
+            cartItem.setItem(item);
 
-        StepVerifier.create(result)
-                .expectNextMatches(order -> order.getTotalSum().equals(new BigDecimal("20.00")) &&
-                        order.getItems().size() == 1 &&
-                        order.getItems().get(0).getQuantity() == 2 &&
-                        cart.getItems().isEmpty())
-                .verifyComplete();
+            Cart cart = new Cart();
+            cart.setUserId(123L);
+            cart.setItems(new ArrayList<>(List.of(cartItem)));
 
-        verify(cartService).saveCart(cart);
-        verify(orderRepository).save(any(Order.class));
-    }
+            BigDecimal total = new BigDecimal("20.00");
+
+            PaymentResponse paymentResponse = new PaymentResponse();
+            paymentResponse.setStatus(PaymentResponse.StatusEnum.SUCCESS);
+
+            Order savedOrder = new Order();
+            savedOrder.setUserId(123L);
+            savedOrder.setTotalSum(total);
+            OrderItem orderItem = new OrderItem();
+            orderItem.setItemId(1L);
+            orderItem.setQuantity(2);
+            orderItem.setPrice(new BigDecimal("10.00"));
+            savedOrder.setItems(new ArrayList<>(List.of(orderItem)));
+            savedOrder.setUserOrderNumber(1L);
+
+            when(cartService.getCurrentUserCart()).thenReturn(Mono.just(cart));
+            when(cartService.calculateTotal(cart)).thenReturn(Mono.just(total));
+            when(paymentClient.processPayment(any(PaymentRequest.class))).thenReturn(Mono.just(paymentResponse));
+            when(orderRepository.findByUserId(123L)).thenReturn(Flux.empty());
+            when(orderRepository.save(any(Order.class))).thenReturn(Mono.just(savedOrder));
+            when(cartService.saveCart(any(Cart.class))).thenReturn(Mono.empty());
+
+            StepVerifier.create(orderService.createOrderFromCart())
+                    .expectNextMatches(order ->
+                            order.getUserId().equals(123L) &&
+                                    order.getTotalSum().equals(total) &&
+                                    order.getItems().size() == 1 &&
+                                    order.getItems().get(0).getItemId().equals(1L) &&
+                                    order.getItems().get(0).getQuantity() == 2 &&
+                                    order.getItems().get(0).getPrice().equals(new BigDecimal("10.00")) &&
+                                    order.getUserOrderNumber().equals(1L))
+                    .verifyComplete();
+
+            verify(cartService).saveCart(argThat(c -> c.getItems().isEmpty()));
+        }
 
     @Test
     void createOrderFromCart_emptyCart_throwsException() {

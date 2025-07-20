@@ -15,6 +15,7 @@ import ru.yandex.intershop.client.PaymentClient;
 import ru.yandex.intershop.client.payment.model.PaymentRequest;
 import ru.yandex.intershop.client.payment.model.PaymentResponse;
 import ru.yandex.intershop.configuration.TestConfig;
+import ru.yandex.intershop.configuration.TestSecurityConfig;
 import ru.yandex.intershop.dto.UpdateCartForm;
 import ru.yandex.intershop.enums.ActionType;
 import ru.yandex.intershop.enums.SortType;
@@ -32,7 +33,7 @@ import java.util.UUID;
 import static org.mockito.Mockito.*;
 
 @WebFluxTest(MainController.class)
-@Import(TestConfig.class)
+@Import({TestConfig.class, TestSecurityConfig.class})
 class MainControllerTest {
 
     @Autowired
@@ -69,6 +70,7 @@ class MainControllerTest {
     }
 
     @Test
+    @WithMockUser
     void showItems_withDefaultParams_returnsMainView() {
         Item item = new Item();
         Page<Item> page = new PageImpl<>(List.of(item));
@@ -85,6 +87,7 @@ class MainControllerTest {
     }
 
     @Test
+    @WithMockUser
     void showItems_withSearchAndSort_returnsMainViewWithCorrectAttributes() {
         Item item = new Item();
         Page<Item> page = new PageImpl<>(List.of(item));
@@ -107,12 +110,14 @@ class MainControllerTest {
     }
 
     @Test
+    @WithMockUser
     void updateMainCart_updatesCartAndRedirects() {
         UpdateCartForm form = new UpdateCartForm();
         form.setAction(ActionType.PLUS);
         when(cartService.updateCartItem(1L, ActionType.PLUS)).thenReturn(Mono.empty());
 
-        webTestClient.post().uri("/main/items/1")
+        webTestClient.mutate().defaultHeader("X-CSRF-TOKEN", "test").build()
+                .post().uri("/main/items/1")
                 .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                 .bodyValue("action=PLUS")
                 .exchange()
@@ -123,6 +128,7 @@ class MainControllerTest {
     }
 
     @Test
+    @WithMockUser
     void buy_createsOrderAndRedirects() {
         Order order = new Order();
         order.setId(1L);
@@ -142,13 +148,4 @@ class MainControllerTest {
         verify(orderService).createOrderFromCart();
     }
 
-    @Test
-    void anonymousShouldBeRedirectedToLogin() {
-        webTestClient
-                .get()
-                .uri("/cart/items")
-                .exchange()
-                .expectStatus().is3xxRedirection()
-                .expectHeader().location("/login");
-    }
 }

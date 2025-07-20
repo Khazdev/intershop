@@ -9,21 +9,23 @@ import ru.yandex.intershop.service.CartService;
 import ru.yandex.intershop.service.ItemService;
 import ru.yandex.intershop.service.OrderService;
 
+import static org.mockito.Mockito.mock;
+
 @TestConfiguration
 public class TestConfig {
     @Bean
     ItemService itemService() {
-        return Mockito.mock(ItemService.class);
+        return mock(ItemService.class);
     }
 
     @Bean
     CartService cartService() {
-        return Mockito.mock(CartService.class);
+        return mock(CartService.class);
     }
 
     @Bean
     OrderService orderService() {
-        return Mockito.mock(OrderService.class);
+        return mock(OrderService.class);
     }
 
     @Bean
@@ -33,7 +35,7 @@ public class TestConfig {
 
     @Bean
     PaymentClient paymentClient() {
-        return Mockito.mock(PaymentClient.class);
+        return mock(PaymentClient.class);
     }
 
 }

@@ -3,8 +3,9 @@ package ru.yandex.intershop.integration;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.data.r2dbc.DataR2dbcTest;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -15,6 +16,8 @@ import ru.yandex.intershop.model.Item;
 import ru.yandex.intershop.repository.CartRepository;
 import ru.yandex.intershop.repository.ItemRepository;
 import ru.yandex.intershop.repository.OrderRepository;
+import ru.yandex.intershop.service.AuthService;
+import ru.yandex.intershop.service.AuthServiceImpl;
 import ru.yandex.intershop.service.CartService;
 import ru.yandex.intershop.service.CartServiceImpl;
 
@@ -23,9 +26,9 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-@DataR2dbcTest
+@SpringBootTest
 @ActiveProfiles("test")
-@Import({CartServiceImpl.class})
+@Import({CartServiceImpl.class, AuthServiceImpl.class})
 class CartServiceIntegrationTest {
 
     @Autowired
@@ -39,6 +42,9 @@ class CartServiceIntegrationTest {
 
     @Autowired
     private OrderRepository orderRepository;
+
+    @Autowired
+    private AuthService authService;
 
     private Item item;
     private Item item2;
@@ -65,6 +71,7 @@ class CartServiceIntegrationTest {
     }
 
     @Test
+    @WithMockUser
     void updateCartItem_andCalculateTotal_success() {
         Long itemId1 = item.getId();
         Mono<Void> updateMono1 = cartService.updateCartItem(itemId1, ActionType.PLUS);

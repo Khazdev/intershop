@@ -35,6 +35,9 @@ class CartServiceImplTest {
     @Mock
     private CartItemRepository cartItemRepository;
 
+    @Mock
+    private AuthService authService;
+
     @InjectMocks
     private CartServiceImpl cartService;
 
@@ -44,6 +47,7 @@ class CartServiceImplTest {
 
     @BeforeEach
     void setUp() {
+
         cart = new Cart();
         cart.setId(1L);
         cart.setUserId(1L);
@@ -62,6 +66,7 @@ class CartServiceImplTest {
 
     @Test
     void getCurrentUserCart_existingCart_returnsCart() {
+        when(authService.getAuthenticatedUserId()).thenReturn(Mono.just(1L));
         when(cartRepository.findByUserId(1L)).thenReturn(Mono.just(cart));
         when(cartItemRepository.findByCartId(cart.getId())).thenReturn(Flux.empty());
 
@@ -77,6 +82,7 @@ class CartServiceImplTest {
 
     @Test
     void getCurrentUserCart_noCart_createsNewCart() {
+        when(authService.getAuthenticatedUserId()).thenReturn(Mono.just(1L));
         when(cartRepository.findByUserId(1L)).thenReturn(Mono.empty());
         when(cartRepository.save(any(Cart.class))).thenReturn(Mono.just(cart));
         when(cartItemRepository.findByCartId(cart.getId())).thenReturn(Flux.empty());
@@ -94,6 +100,7 @@ class CartServiceImplTest {
 
     @Test
     void updateCartItem_plusNewItem_addsToCart() {
+        when(authService.getAuthenticatedUserId()).thenReturn(Mono.just(1L));
         when(cartRepository.findByUserId(1L)).thenReturn(Mono.just(cart));
         when(cartItemRepository.findByCartId(cart.getId())).thenReturn(Flux.empty());
         when(itemRepository.findById(1L)).thenReturn(Mono.just(item));
@@ -117,6 +124,7 @@ class CartServiceImplTest {
     void updateCartItem_plusExistingItem_incrementsQuantity() {
         cart.getItems().add(cartItem);
         cartItem.setQuantity(1);
+        when(authService.getAuthenticatedUserId()).thenReturn(Mono.just(1L));
         when(cartRepository.findByUserId(1L)).thenReturn(Mono.just(cart));
         when(cartItemRepository.findByCartId(cart.getId())).thenReturn(Flux.just(cartItem));
         when(itemRepository.findById(1L)).thenReturn(Mono.just(item));
@@ -147,6 +155,7 @@ class CartServiceImplTest {
     @Test
     void updateCartItem_minusSingleItem_removesItem() {
         cart.getItems().add(cartItem);
+        when(authService.getAuthenticatedUserId()).thenReturn(Mono.just(1L));
         when(cartRepository.findByUserId(1L)).thenReturn(Mono.just(cart));
         when(cartItemRepository.findByCartId(cart.getId())).thenReturn(Flux.just(cartItem));
         when(itemRepository.findById(1L)).thenReturn(Mono.just(item));
