@@ -3,6 +3,7 @@ package ru.yandex.intershop.controller;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -48,17 +49,19 @@ public class MainController {
         return exchange.getSession()
                 .doOnNext(session -> log.info("ID сессии: {}", session.getId()))
                 .then(fetchItemsAndCart(search, sort, pageNumber, pageSize)
-                .flatMap(tuple -> prepareItemsView(tuple.getT1(), tuple.getT2(), search, sort, model))
-                .thenReturn("main"));
+                        .flatMap(tuple -> prepareItemsView(tuple.getT1(), tuple.getT2(), search, sort, model))
+                        .thenReturn("main"));
     }
 
     @PostMapping("/main/items/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public Mono<String> updateMainCart(@PathVariable Long id, @ModelAttribute UpdateCartForm form) {
         return cartService.updateCartItem(id, form.getAction())
                 .then(Mono.just("redirect:/main/items"));
     }
 
     @PostMapping("/buy")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public Mono<String> buy() {
         return orderService.createOrderFromCart()
                 .map(order -> "redirect:/orders/" + order.getId() + "?newOrder=true");
@@ -67,7 +70,7 @@ public class MainController {
     private Mono<Tuple2<Page<Item>, Cart>> fetchItemsAndCart(String search, SortType sort, int pageNumber, int pageSize) {
         return itemService.findItems(search, sort, pageNumber, pageSize)
                 .zipWith(cartService.getCurrentUserCart()
-                .switchIfEmpty(Mono.just(new Cart())));
+                        .switchIfEmpty(Mono.just(new Cart())));
     }
 
     private Mono<Void> prepareItemsView(Page<Item> itemPage, Cart cart, String search, SortType sort, Model model) {

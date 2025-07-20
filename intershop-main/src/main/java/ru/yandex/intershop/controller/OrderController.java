@@ -1,6 +1,7 @@
 package ru.yandex.intershop.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Controller;
@@ -22,13 +23,7 @@ public class OrderController {
     private final UserRepository userRepository;
 
     @GetMapping
-    public Mono<String> showOrders(Model model) {
-        return orderService.getAllOrders()
-                .collectList()
-                .map(orders -> {
-                    model.addAttribute("orders", orders);
-                    return "orders";
-                });
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public Mono<String> showOrders(Model model, @AuthenticationPrincipal UserDetails userDetails) {
         return userRepository.findByUsername(userDetails.getUsername())
                 .map(User::getId)
@@ -41,6 +36,7 @@ public class OrderController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public Mono<String> showOrder(
             @PathVariable Long id,
             @RequestParam(defaultValue = "false") boolean newOrder,

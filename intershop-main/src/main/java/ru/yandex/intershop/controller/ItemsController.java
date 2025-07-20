@@ -2,6 +2,7 @@ package ru.yandex.intershop.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -34,6 +35,7 @@ public class ItemsController {
     }
 
     @PostMapping("/{id}")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public Mono<String> updateItem(@PathVariable Long id, @ModelAttribute UpdateCartForm form) {
         return cartService.updateCartItem(id, form.getAction())
                 .then(Mono.just("redirect:/items/" + id));

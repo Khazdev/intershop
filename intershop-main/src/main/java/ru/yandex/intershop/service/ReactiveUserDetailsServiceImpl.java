@@ -25,7 +25,13 @@ public class ReactiveUserDetailsServiceImpl implements ReactiveUserDetailsServic
     private UserDetails mapToUserDetails(User user) {
         return org.springframework.security.core.userdetails.User.withUsername(user.getUsername())
                 .password(user.getPassword())
-                .roles(user.getRoles().toArray(String[]::new))
+                .roles(user.getRoles().stream()
+                        //по загадочной причине роли перекладываются вот так Granted Authorities=[ROLE_NOTUSER], ROLE_[ADMIN]]]
+                        //поэтому убираем []
+                        .map(role -> role
+                                .replace("[", "")
+                                .replace("]", ""))
+                        .toArray(String[]::new))
                 .build();
     }
 
