@@ -1,0 +1,48 @@
+logging:
+  level:
+    org:
+      springframework:
+        security: DEBUG
+        web: DEBUG
+        data:
+          r2dbc: DEBUG
+    reactor: DEBUG
+    ru:
+      yandex:
+        intershop: DEBUG
+payment:
+  service:
+    url: ${PAYMENT_SERVICE_URL:http://localhost:8081}
+spring:
+  application:
+    name: intershop
+  cache:
+    redis:
+      cache-null-values: false
+      key-prefix: myapp_
+      time-to-live: 60000
+    type: redis
+  data:
+    redis:
+      host: localhost
+      password: ''
+      port: 6379
+      timeout: 5000
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: false
+  security:
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: ${OAUTH2_CLIENT_ID:intershop-main}
+            client-secret: ${OAUTH2_CLIENT_SECRET}
+            authorization-grant-type: client_credentials
+            scope: openid
+        provider:
+          keycloak:
+            token-uri: ${OAUTH2_TOKEN_URI:http://keycloak:8080/realms/intershop/protocol/openid-connect/token}

@@ -1,0 +1,14 @@
+{
+  "realm": "intershop",
+  "enabled": true,
+  "clients": [
+    {
+      "clientId": "intershop-main",
+      "enabled": true,
+      "secret": "YHPEMRyZmWGiPKMjchp250D5nZwg6hSG",
+      "protocol": "openid-connect",
+      "standardFlowEnabled": false,
+      "serviceAccountsEnabled": true
+    }
+  ]
+}

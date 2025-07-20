@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.client.ReactiveOAuth2AuthorizedClientManager;
+import org.springframework.security.oauth2.client.web.reactive.function.client.ServerOAuth2AuthorizedClientExchangeFilterFunction;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -27,9 +29,15 @@ public class PaymentClient {
     private final WebClient webClient;
 
     public PaymentClient(WebClient.Builder webClientBuilder,
+                         ReactiveOAuth2AuthorizedClientManager authorizedClientManager,
                          @Value("${payment.service.url}") String paymentServiceUrl) {
+        ServerOAuth2AuthorizedClientExchangeFilterFunction oauth2 =
+                new ServerOAuth2AuthorizedClientExchangeFilterFunction(authorizedClientManager);
+        oauth2.setDefaultClientRegistrationId("keycloak");
+
         this.webClient = webClientBuilder
                 .baseUrl(paymentServiceUrl)
+                .filter(oauth2)
                 .build();
     }
 
