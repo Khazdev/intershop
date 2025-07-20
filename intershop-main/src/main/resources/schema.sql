@@ -42,3 +42,11 @@ CREATE TABLE IF NOT EXISTS order_item
     FOREIGN KEY (order_id) REFERENCES purchase_order (id) ON DELETE CASCADE,
     FOREIGN KEY (item_id) REFERENCES items (id)
 );
+
+CREATE TABLE IF NOT EXISTS users
+(
+    id       BIGINT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(255) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    roles    VARCHAR(255)
+);
