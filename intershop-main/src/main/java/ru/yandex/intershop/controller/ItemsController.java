@@ -1,6 +1,7 @@
 package ru.yandex.intershop.controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -16,7 +17,7 @@ import ru.yandex.intershop.model.Item;
 import ru.yandex.intershop.service.CartService;
 import ru.yandex.intershop.service.ItemService;
 
-
+@Slf4j
 @Controller
 @RequestMapping("/items")
 @RequiredArgsConstructor
@@ -39,7 +40,12 @@ public class ItemsController {
     }
 
     private Mono<Tuple2<Item, Cart>> fetchItemAndCart(Long itemId) {
-        return Mono.zip(itemService.getItemById(itemId), cartService.getCurrentUserCart());
+        return itemService.getItemById(itemId)
+                .switchIfEmpty(Mono.error(new IllegalArgumentException("Item not found for id: " + itemId)))
+                .zipWith(cartService.getCurrentUserCart()
+                        //для анонимных пользователей
+                        .switchIfEmpty(Mono.just(new Cart())))
+                .doOnNext(tuple -> log.info("Fetched item: {}, cart: {}", tuple.getT1(), tuple.getT2()));
     }
 
     private Mono<Void> prepareItemView(Item item, Cart cart, Model model) {
