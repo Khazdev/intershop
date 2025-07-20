@@ -29,4 +29,11 @@ public class Order {
 
     @Column("created_at")
     private LocalDateTime createdAt;
+
+    @Column("user_id")
+    private Long userId;
+
+    @Column("user_order_number")
+    private Long userOrderNumber;
+
 }

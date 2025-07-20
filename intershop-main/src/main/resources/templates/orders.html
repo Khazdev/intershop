@@ -17,7 +17,7 @@
     <tr th:each="order : ${orders}">
         <td>
             <h2>
-                <a th:text="${'Заказ №'+order.getId()}" th:href="${'/orders/'+order.getId()}"></a>
+                <a th:text="${'Заказ №'+order.getUserOrderNumber()}" th:href="${'/orders/'+order.getUserOrderNumber()}"></a>
             </h2>
             <table>
                 <tr th:each="item : ${order.getItems()}">

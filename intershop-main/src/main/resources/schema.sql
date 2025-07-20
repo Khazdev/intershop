@@ -27,9 +27,11 @@ CREATE TABLE IF NOT EXISTS cart_item
 
 CREATE TABLE IF NOT EXISTS purchase_order
 (
-    id         BIGINT PRIMARY KEY AUTO_INCREMENT,
-    total_sum  DECIMAL(19, 2) NOT NULL CHECK (total_sum > 0),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    id                BIGINT PRIMARY KEY AUTO_INCREMENT,
+    total_sum         DECIMAL(19, 2) NOT NULL CHECK (total_sum > 0),
+    created_at        TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    user_id           BIGINT         NOT NULL,
+    user_order_number BIGINT         NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS order_item

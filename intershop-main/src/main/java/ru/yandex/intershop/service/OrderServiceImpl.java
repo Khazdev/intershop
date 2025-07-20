@@ -57,8 +57,8 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public Flux<Order> getAllOrders() {
-        return orderRepository.findAll();
+    public Flux<Order> getAllOrders(Long userId) {
+        return orderRepository.findByUserId(userId);
     }
 
     @Override
@@ -69,6 +69,7 @@ public class OrderServiceImpl implements OrderService {
 
     private Mono<Order> createOrder(Cart cart, BigDecimal total) {
         Order order = new Order();
+        order.setUserId(cart.getUserId());
         List<OrderItem> orderItems = new ArrayList<>();
 
         for (CartItem cartItem : cart.getItems()) {
@@ -81,8 +82,12 @@ public class OrderServiceImpl implements OrderService {
 
         order.setItems(orderItems);
         order.setTotalSum(total);
-
-        return orderRepository.save(order)
+        return orderRepository.findByUserId(order.getUserId()).count()
+                .map(count -> {
+                    order.setUserOrderNumber(count + 1);
+                    return order;
+                })
+                .flatMap(orderRepository::save)
                 .flatMap(savedOrder -> {
                     log.info("Корзина перед очисткой: {}", cart.getItems());
                     cart.clearItems();
