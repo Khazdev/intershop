@@ -8,6 +8,7 @@ Intershop
 2. **PaymentService** - платежный сервис, отвечающий за обработку платежей.
 
 Для кэширования данных используется **Redis**.
+Для аутентификации и авторизации используется **Spring Security** с интеграцией **Keycloak**.
 
 Баланс в приложении PaymentService можно отредактировать в файле payment-service/src/main/resources/application.yaml
 
@@ -16,7 +17,7 @@ Intershop
 Java: JDK 21
 Maven: 3.6.0 или выше
 База данных: H2
-Docker(если нужен запуск в контейнере)
+Docker
 
 Установка
 
@@ -32,15 +33,7 @@ mvn clean install
 mvn test
 
 
-Сборка приложения для запуска образа через Docker
-
-
-Запустить конфигурацию Run Intershop Docker (в конфигурации сборка jar, образа и его запуск)
-
 Запуск приложения
-
-
-локальный - через конфигурацию Full Local Setup (Redis + Apps)
 
 
 через Docker Compose docker-compose up --build
@@ -49,3 +42,23 @@ mvn test
 http://localhost:8080/
 
 H2 база данных работает в режиме in-memory и не предоставляет веб-консоль (например, http://localhost:8080/h2-console/) при использовании R2DBC в реактивном стеке.
+
+
+Приложение использует Spring Security с Keycloak для управления доступом. В Docker Compose добавлен сервер Keycloak.
+
+Из коробки конфигурируются три пользователя:
+
+1. **Администратор**:
+   - Логин: `admin`
+   - Пароль: `admin`
+   - Роли: `ADMIN`, `NOTUSER`
+
+2. **Обычный пользователь**:
+   - Логин: `user`
+   - Пароль: `user`
+   - Роли: `USER`
+
+3. **Пользователь с ограниченными правами (у него нет доступа до ендпоинтов)**:
+   - Логин: `notuser`
+   - Пароль: `notuser`
+   - Роли: `NOTUSER`
