@@ -6,6 +6,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import ru.yandex.intershop.exception.EmptyCartException;
@@ -92,19 +93,22 @@ class OrderServiceImplTest {
         verifyNoInteractions(orderRepository);
     }
 
-//    @Test
-//    void getAllOrders_returnsOrders() {
-//        Order order = new Order();
-//        when(orderRepository.findAll()).thenReturn(Flux.just(order));
-//
-//        Flux<Order> result = orderService.getAllOrders();
-//
-//        StepVerifier.create(result)
-//                .expectNext(order)
-//                .verifyComplete();
-//
-//        verify(orderRepository).findAll();
-//    }
+    @Test
+    void getAllOrders_returnsOrders() {
+        Long userId = 1L;
+        Order order = new Order();
+        order.setUserId(userId);
+
+        when(orderRepository.findByUserId(userId)).thenReturn(Flux.just(order));
+
+        Flux<Order> result = orderService.getAllOrders(userId);
+
+        StepVerifier.create(result)
+                .expectNext(order)
+                .verifyComplete();
+
+        verify(orderRepository).findByUserId(userId);
+    }
 
     @Test
     void getOrderById_returnsOrder() {

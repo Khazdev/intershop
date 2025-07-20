@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Mono;
 import ru.yandex.intershop.client.PaymentClient;
@@ -20,6 +21,7 @@ import ru.yandex.intershop.enums.SortType;
 import ru.yandex.intershop.model.Cart;
 import ru.yandex.intershop.model.Item;
 import ru.yandex.intershop.model.Order;
+import ru.yandex.intershop.service.AuthService;
 import ru.yandex.intershop.service.CartService;
 import ru.yandex.intershop.service.ItemService;
 import ru.yandex.intershop.service.OrderService;
@@ -46,6 +48,9 @@ class MainControllerTest {
     private OrderService orderService;
 
     @Autowired
+    private AuthService authService;
+
+    @Autowired
     private PaymentClient paymentClient;
 
     @BeforeEach
@@ -54,8 +59,10 @@ class MainControllerTest {
     }
 
     @Test
+    @WithMockUser
     void root_redirectsToMainItems() {
-        webTestClient.get().uri("/")
+        webTestClient
+                .get().uri("/")
                 .exchange()
                 .expectStatus().is3xxRedirection()
                 .expectHeader().location("/main/items");
@@ -133,5 +140,15 @@ class MainControllerTest {
                 .expectHeader().location("/orders/1?newOrder=true");
 
         verify(orderService).createOrderFromCart();
+    }
+
+    @Test
+    void anonymousShouldBeRedirectedToLogin() {
+        webTestClient
+                .get()
+                .uri("/cart/items")
+                .exchange()
+                .expectStatus().is3xxRedirection()
+                .expectHeader().location("/login");
     }
 }

@@ -46,9 +46,6 @@ class ItemServiceIntegrationTest {
     @Container
     private static final RedisContainer redisContainer = RedisTestConfig.REDIS_CONTAINER;
 
-    private Item item;
-    private Item item2;
-
     @DynamicPropertySource
     private static void registerRedisProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.redis.host", redisContainer::getHost);
@@ -57,20 +54,19 @@ class ItemServiceIntegrationTest {
 
     @BeforeEach
     void setUp() {
-        item = new Item();
+        Item item = new Item();
         item.setPrice(new BigDecimal("100.00"));
         item.setTitle("Test Item");
         item.setDescription("Test Description");
 
-        item = itemRepository.save(item).block();
-
-        item2 = new Item();
+        Item item2 = new Item();
         item2.setPrice(new BigDecimal("50.00"));
         item2.setTitle("Test Item 2");
         item2.setDescription("Test Description 2");
 
-        item2 = itemRepository.save(item2).block();
-
+        itemRepository.saveAll(List.of(item, item2))
+                .collectList()
+                .block();
     }
 
     @Test

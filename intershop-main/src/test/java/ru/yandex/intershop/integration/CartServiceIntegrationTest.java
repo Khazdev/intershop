@@ -14,10 +14,12 @@ import ru.yandex.intershop.model.CartItem;
 import ru.yandex.intershop.model.Item;
 import ru.yandex.intershop.repository.CartRepository;
 import ru.yandex.intershop.repository.ItemRepository;
+import ru.yandex.intershop.repository.OrderRepository;
 import ru.yandex.intershop.service.CartService;
 import ru.yandex.intershop.service.CartServiceImpl;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -35,6 +37,9 @@ class CartServiceIntegrationTest {
     @Autowired
     private CartRepository cartRepository;
 
+    @Autowired
+    private OrderRepository orderRepository;
+
     private Item item;
     private Item item2;
 
@@ -45,14 +50,14 @@ class CartServiceIntegrationTest {
         item.setTitle("Test Item");
         item.setDescription("Test Description");
 
-        item = itemRepository.save(item).block();
-
         item2 = new Item();
         item2.setPrice(new BigDecimal("50.00"));
         item2.setTitle("Test Item 2");
         item2.setDescription("Test Description 2");
 
-        item2 = itemRepository.save(item2).block();
+        itemRepository.saveAll(List.of(item, item2))
+                .collectList()
+                .block();
 
         Cart cart = new Cart();
         cart.setUserId(1L);
