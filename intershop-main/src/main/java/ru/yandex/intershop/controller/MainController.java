@@ -4,7 +4,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.context.ReactiveSecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -19,6 +18,7 @@ import ru.yandex.intershop.mapper.ItemToItemDtoMapper;
 import ru.yandex.intershop.model.Cart;
 import ru.yandex.intershop.model.Item;
 import ru.yandex.intershop.model.Paging;
+import ru.yandex.intershop.service.AuthService;
 import ru.yandex.intershop.service.CartService;
 import ru.yandex.intershop.service.ItemService;
 import ru.yandex.intershop.service.OrderService;
@@ -34,6 +34,7 @@ public class MainController {
     private final ItemService itemService;
     private final CartService cartService;
     private final OrderService orderService;
+    private final AuthService authService;
 
     @GetMapping("/")
     public Mono<String> root() {
@@ -54,7 +55,7 @@ public class MainController {
     }
 
     @PostMapping("/main/items/{id}")
-    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+        @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
     public Mono<String> updateMainCart(@PathVariable Long id, @ModelAttribute UpdateCartForm form) {
         return cartService.updateCartItem(id, form.getAction())
                 .then(Mono.just("redirect:/main/items"));
@@ -74,11 +75,7 @@ public class MainController {
     }
 
     private Mono<Void> prepareItemsView(Page<Item> itemPage, Cart cart, String search, SortType sort, Model model) {
-        return ReactiveSecurityContextHolder.getContext()
-                .map(securityContext -> securityContext.getAuthentication() != null
-                        && securityContext.getAuthentication().isAuthenticated()
-                        && !"anonymousUser".equals(securityContext.getAuthentication().getPrincipal()))
-                .doOnNext(isAuthenticated -> log.info("isAuthenticated: {}", isAuthenticated))
+        return authService.isAuthenticated()
                 .flatMap(isAuthenticated -> {
                     Mono<List<ItemDto>> itemDtosMono = cart.getId() != null
                             ? ItemToItemDtoMapper.mapList(Flux.fromIterable(itemPage.getContent()), Mono.just(cart))

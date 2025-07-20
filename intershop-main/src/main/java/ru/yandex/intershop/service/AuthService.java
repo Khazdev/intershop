@@ -8,4 +8,6 @@ public interface AuthService {
     Mono<Long> getAuthenticatedUserId();
 
     Mono<User> getCurrentUserMono();
+
+    Mono<Boolean> isAuthenticated();
 }

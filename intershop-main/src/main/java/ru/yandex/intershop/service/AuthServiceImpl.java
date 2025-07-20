@@ -21,12 +21,25 @@ public class AuthServiceImpl implements AuthService {
     }
 
     public Mono<User> getCurrentUserMono() {
+        return checkAuthentication()
+                .filter(isAuthenticated -> isAuthenticated)
+                .map(isAuthenticated -> ReactiveSecurityContextHolder.getContext())
+                .flatMap(securityContext -> securityContext
+                        .map(SecurityContext::getAuthentication)
+                        .map(Authentication::getName)
+                        .flatMap(userRepository::findByUsername))
+                .switchIfEmpty(Mono.empty());
+    }
+
+    public Mono<Boolean> isAuthenticated() {
+        return checkAuthentication()
+                .defaultIfEmpty(false);
+    }
+
+    private Mono<Boolean> checkAuthentication() {
         return ReactiveSecurityContextHolder.getContext()
                 .map(SecurityContext::getAuthentication)
-                .filter(auth -> auth != null && auth.isAuthenticated()
-                        && !"anonymousUser".equals(auth.getPrincipal()))
-                .map(Authentication::getName)
-                .flatMap(userRepository::findByUsername)
-                .switchIfEmpty(Mono.empty());
+                .map(auth -> auth != null && auth.isAuthenticated()
+                        && !"anonymousUser".equals(auth.getPrincipal()));
     }
 }

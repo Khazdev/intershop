@@ -15,6 +15,7 @@ import ru.yandex.intershop.mapper.ItemToItemDtoMapper;
 import ru.yandex.intershop.model.Cart;
 import ru.yandex.intershop.model.CartItem;
 import ru.yandex.intershop.model.Item;
+import ru.yandex.intershop.service.AuthService;
 import ru.yandex.intershop.service.CartService;
 import ru.yandex.intershop.service.ItemService;
 
@@ -26,6 +27,7 @@ public class ItemsController {
 
     private final ItemService itemService;
     private final CartService cartService;
+    private final AuthService authService;
 
     @GetMapping("/{id}")
     public Mono<String> getItem(@PathVariable Long id, Model model) {
@@ -52,11 +54,14 @@ public class ItemsController {
 
     private Mono<Void> prepareItemView(Item item, Cart cart, Model model) {
         return getItemQuantityInCart(item.getId(), cart)
-                .doOnNext(quantity -> {
-                    ItemDto itemDto = ItemToItemDtoMapper.map(item, quantity);
-                    model.addAttribute("item", itemDto);
-                })
-                .then();
+                .flatMap(quantity -> authService.isAuthenticated()
+                        .doOnNext(isAuthenticated -> {
+                            ItemDto itemDto = ItemToItemDtoMapper.map(item, quantity);
+                            model.addAttribute("item", itemDto);
+                            model.addAttribute("isAuthenticated", isAuthenticated);
+                            model.addAttribute("cart", cart.getId() != null ? cart : null);
+                        })
+                        .then());
     }
 
     private Mono<Integer> getItemQuantityInCart(Long itemId, Cart cart) {
